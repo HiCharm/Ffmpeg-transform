@@ -1,0 +1,3 @@
+/home/ubuntu2204/workspace/2025/Ffmpeg-transform/CMakeFiles/transcode.dir
+/home/ubuntu2204/workspace/2025/Ffmpeg-transform/CMakeFiles/edit_cache.dir
+/home/ubuntu2204/workspace/2025/Ffmpeg-transform/CMakeFiles/rebuild_cache.dir

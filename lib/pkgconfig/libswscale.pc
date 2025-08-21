@@ -1,0 +1,14 @@
+prefix=/home/ubuntu2204/ffmpeg
+exec_prefix=${prefix}
+libdir=/home/ubuntu2204/ffmpeg/lib
+includedir=/home/ubuntu2204/ffmpeg/include
+
+Name: libswscale
+Description: FFmpeg image rescaling library
+Version: 7.5.100
+Requires: 
+Requires.private: libavutil >= 58.29.100
+Conflicts:
+Libs: -L${libdir}  -lswscale 
+Libs.private: -lm -latomic
+Cflags: -I${includedir}

@@ -1,0 +1,14 @@
+prefix=/home/ubuntu2204/ffmpeg
+exec_prefix=${prefix}
+libdir=/home/ubuntu2204/ffmpeg/lib
+includedir=/home/ubuntu2204/ffmpeg/include
+
+Name: libavutil
+Description: FFmpeg utility library
+Version: 58.29.100
+Requires: 
+Requires.private: 
+Conflicts:
+Libs: -L${libdir}  -lavutil 
+Libs.private: -pthread -lm -latomic -lX11
+Cflags: -I${includedir}

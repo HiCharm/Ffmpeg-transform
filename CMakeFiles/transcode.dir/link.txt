@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/transcode.dir/src/transcode.cpp.o -o transcode   -L/home/ubuntu2204/workspace/2025/Ffmpeg-transform/lib  -Wl,-rpath,/home/ubuntu2204/workspace/2025/Ffmpeg-transform/lib -lavformat -lavcodec -lavutil -lswscale -lswresample 
