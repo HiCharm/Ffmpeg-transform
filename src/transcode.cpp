@@ -6,6 +6,12 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -15,7 +21,10 @@ extern "C" {
 #include <libavutil/timestamp.h>
 #include <libswscale/swscale.h>
 #include <libswresample/swresample.h>
+#include "glad.c"
 }
+
+
 
 // 队列模板类，用于缓存Packet和Frame
 template<typename T>
@@ -85,6 +94,8 @@ public:
     }
 };
 
+class WatermarkRenderer;
+
 // 处理上下文
 struct ProcessingContext {
     // 输入
@@ -107,18 +118,21 @@ struct ProcessingContext {
     AVCodecContext *audio_encoder_ctx = nullptr;
     
     // 队列
-    // MediaQueue<AVPacket*> packet_queue;          // 从demuxer输出的packet队列
     MediaQueue<AVPacket*> video_packet_queue;    // 解码前的视频packet队列
     MediaQueue<AVPacket*> audio_packet_queue;    // 解码前的音频
     MediaQueue<AVFrame*> video_frame_queue;      // 解码后的视频帧队列
     MediaQueue<AVFrame*> audio_frame_queue;      // 解码后的音频帧队列
     MediaQueue<AVPacket*> video_encoded_packet_queue;  // 编码后的视频packet队列
     MediaQueue<AVPacket*> audio_encoded_packet_queue;  // 编码后的音频packet队列
-    // MediaQueue<AVPacket*> encoded_packet_queue;  // 编码后的packet队列
     
     // 转换器
     struct SwsContext *sws_ctx = nullptr;        // 视频格式转换
     struct SwrContext *swr_ctx = nullptr;        // 音频格式转换
+    
+    // OpenGL相关
+    std::string watermark_path;
+    std::unique_ptr<WatermarkRenderer> watermark_renderer;
+    std::mutex watermark_mutex;  // 确保OpenGL操作线程安全
     
     // 线程控制
     bool quit = false;
@@ -130,6 +144,339 @@ struct ProcessingContext {
     std::thread mux_thread;
 };
 
+class WatermarkRenderer {
+private:
+    GLFWwindow* window;
+    GLuint fbo;          // 帧缓冲对象
+    GLuint video_tex;    // 视频纹理
+    GLuint watermark_tex;// 水印纹理
+    int width, height;   // 视频帧尺寸
+
+    // 着色器程序和缓冲对象
+    GLuint shader_program;
+    GLuint VAO, VBO, EBO;
+
+    // 顶点数据 - 视频帧和水印位置(右下角)
+    float vertices[40] = {
+        // 视频帧顶点 (全屏)
+        -1.0f,  1.0f, 0.0f,  0.0f, 1.0f,  // 左上
+         1.0f,  1.0f, 0.0f,  1.0f, 1.0f,  // 右上
+         1.0f, -1.0f, 0.0f,  1.0f, 0.0f,  // 右下
+        -1.0f, -1.0f, 0.0f,  0.0f, 0.0f,  // 左下
+        // 水印顶点 (右下角)
+         0.5f, -0.5f, 0.0f,  0.0f, 1.0f,  // 左上
+         1.0f, -0.5f, 0.0f,  1.0f, 1.0f,  // 右上
+         1.0f, -1.0f, 0.0f,  1.0f, 0.0f,  // 右下
+         0.5f, -1.0f, 0.0f,  0.0f, 0.0f   // 左下
+    };
+
+    unsigned int indices[12] = {
+        0, 1, 2,   // 视频帧三角形1
+        2, 3, 0,   // 视频帧三角形2
+        4, 5, 6,   // 水印三角形1
+        6, 7, 4    // 水印三角形2
+    };
+
+    // 编译着色器
+    GLuint compile_shader(GLenum type, const char* source) {
+        GLuint shader = glCreateShader(type);
+        glShaderSource(shader, 1, &source, NULL);
+        glCompileShader(shader);
+        
+        int success;
+        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+        if (!success) {
+            char infoLog[512];
+            glGetShaderInfoLog(shader, 512, NULL, infoLog);
+            std::cerr << "着色器编译失败: " << infoLog << std::endl;
+        }
+        return shader;
+    }
+
+    // 初始化着色器
+    void init_shaders() {
+        const char* vertexShaderSource = "#version 330 core\n"
+            "layout (location = 0) in vec3 aPos;\n"
+            "layout (location = 1) in vec2 aTexCoord;\n"
+            "out vec2 TexCoord;\n"
+            "void main()\n"
+            "{\n"
+            "   gl_Position = vec4(aPos, 1.0);\n"
+            "   TexCoord = aTexCoord;\n"
+            "}\0";
+
+        const char* fragmentShaderSource = "#version 330 core\n"
+            "out vec4 FragColor;\n"
+            "in vec2 TexCoord;\n"
+            "uniform sampler2D videoTexture;\n"
+            "uniform sampler2D watermarkTexture;\n"
+            "uniform int isWatermark;\n"
+            "void main()\n"
+            "{\n"
+            "   if(isWatermark == 0) {\n"
+            "       FragColor = texture(videoTexture, TexCoord);\n"
+            "   } else {\n"
+            "       vec4 watermark = texture(watermarkTexture, TexCoord);\n"
+            "       FragColor = watermark.a > 0.1 ? watermark : vec4(0.0);\n"
+            "   }\n"
+            "}\0";
+
+        GLuint vertexShader = compile_shader(GL_VERTEX_SHADER, vertexShaderSource);
+        GLuint fragmentShader = compile_shader(GL_FRAGMENT_SHADER, fragmentShaderSource);
+
+        shader_program = glCreateProgram();
+        glAttachShader(shader_program, vertexShader);
+        glAttachShader(shader_program, fragmentShader);
+        glLinkProgram(shader_program);
+
+        int success;
+        glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
+        if (!success) {
+            char infoLog[512];
+            glGetProgramInfoLog(shader_program, 512, NULL, infoLog);
+            std::cerr << "着色器程序链接失败: " << infoLog << std::endl;
+        }
+
+        glDeleteShader(vertexShader);
+        glDeleteShader(fragmentShader);
+    }
+
+    // 初始化缓冲对象
+    void init_buffers() {
+        glGenVertexArrays(1, &VAO);
+        glGenBuffers(1, &VBO);
+        glGenBuffers(1, &EBO);
+
+        glBindVertexArray(VAO);
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+        // 位置属性
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+        // 纹理坐标属性
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
+
+        glBindVertexArray(0);
+    }
+
+    // 初始化帧缓冲和纹理
+    void init_framebuffer() {
+        // 创建视频帧纹理
+        glGenTextures(1, &video_tex);
+        glBindTexture(GL_TEXTURE_2D, video_tex);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+
+        // 创建帧缓冲
+        glGenFramebuffers(1, &fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, video_tex, 0);
+        
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            std::cerr << "帧缓冲不完整！" << std::endl;
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    // 加载水印图片
+    bool load_watermark_image(const std::string& path) {
+        int w, h, nrChannels;
+        unsigned char *data = stbi_load(path.c_str(), &w, &h, &nrChannels, 0);
+        if (!data) {
+            std::cerr << "无法加载水印图片: " << path << std::endl;
+            return false;
+        }
+
+        glGenTextures(1, &watermark_tex);
+        glBindTexture(GL_TEXTURE_2D, watermark_tex);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        GLenum format = (nrChannels == 4) ? GL_RGBA : GL_RGB;
+        glTexImage2D(GL_TEXTURE_2D, 0, format, w, h, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        stbi_image_free(data);
+        return true;
+    }
+
+public:
+    WatermarkRenderer(int w, int h, const std::string& watermark_path) 
+        : width(w), height(h), window(nullptr), fbo(0), video_tex(0), watermark_tex(0),
+          shader_program(0), VAO(0), VBO(0), EBO(0) {
+        // 初始化GLFW
+        if (!glfwInit()) {
+            std::cerr << "无法初始化GLFW" << std::endl;
+            return;
+        }
+
+        // 创建不可见窗口用于OpenGL上下文
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+        window = glfwCreateWindow(width, height, "Watermark Renderer", NULL, NULL);
+        if (!window) {
+            std::cerr << "无法创建GLFW窗口" << std::endl;
+            glfwTerminate();
+            return;
+        }
+
+        // 绑定上下文
+        glfwMakeContextCurrent(window);
+
+        // 初始化GLAD
+        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+            std::cerr << "无法初始化GLAD" << std::endl;
+            glfwDestroyWindow(window);
+            glfwTerminate();
+            return;
+        }
+
+        // 初始化组件
+        init_shaders();
+        init_buffers();
+        init_framebuffer();
+        
+        // 加载水印
+        if (!load_watermark_image(watermark_path)) {
+            cleanup();
+        }
+    }
+
+    ~WatermarkRenderer() {
+        cleanup();
+    }
+
+    void cleanup() {
+        if (window) {
+            glDeleteVertexArrays(1, &VAO);
+            glDeleteBuffers(1, &VBO);
+            glDeleteBuffers(1, &EBO);
+            glDeleteProgram(shader_program);
+            glDeleteTextures(1, &video_tex);
+            glDeleteTextures(1, &watermark_tex);
+            glDeleteFramebuffers(1, &fbo);
+            glfwDestroyWindow(window);
+            glfwTerminate();
+            window = nullptr;
+        }
+    }
+
+    bool is_valid() const {
+        return window != nullptr;
+    }
+
+    // 给视频帧添加水印
+    int add_watermark(AVFrame* input_frame, AVFrame* output_frame) {
+        if (!is_valid() || !input_frame || !output_frame) {
+            return -1;
+        }
+
+        // 确保输出帧已分配
+        output_frame->width = width;
+        output_frame->height = height;
+        output_frame->format = input_frame->format;
+        int ret = av_frame_get_buffer(output_frame, 0);
+        if (ret < 0) {
+            std::cerr << "无法为输出帧分配缓冲区" << std::endl;
+            return ret;
+        }
+
+        // 将YUV转换为RGB供OpenGL使用
+        AVFrame* rgb_frame = av_frame_alloc();
+        rgb_frame->width = width;
+        rgb_frame->height = height;
+        rgb_frame->format = AV_PIX_FMT_RGB24;
+        ret = av_frame_get_buffer(rgb_frame, 0);
+        if (ret < 0) {
+            std::cerr << "无法为RGB帧分配缓冲区" << std::endl;
+            av_frame_free(&rgb_frame);
+            return ret;
+        }
+
+        // 转换格式
+        SwsContext* sws_ctx = sws_getContext(
+            width, height, (AVPixelFormat)input_frame->format,
+            width, height, AV_PIX_FMT_RGB24,
+            SWS_BILINEAR, nullptr, nullptr, nullptr
+        );
+        if (!sws_ctx) {
+            std::cerr << "无法创建SwsContext" << std::endl;
+            av_frame_free(&rgb_frame);
+            return -1;
+        }
+
+        sws_scale(sws_ctx, input_frame->data, input_frame->linesize, 0, height,
+                 rgb_frame->data, rgb_frame->linesize);
+        sws_freeContext(sws_ctx);
+
+        // 上传视频帧数据到纹理
+        glBindTexture(GL_TEXTURE_2D, video_tex);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, 
+                       GL_RGB, GL_UNSIGNED_BYTE, rgb_frame->data[0]);
+
+        // 渲染到帧缓冲
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glViewport(0, 0, width, height);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        glUseProgram(shader_program);
+
+        // 绘制视频帧
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, video_tex);
+        glUniform1i(glGetUniformLocation(shader_program, "videoTexture"), 0);
+        glUniform1i(glGetUniformLocation(shader_program, "isWatermark"), 0);
+        
+        glBindVertexArray(VAO);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);  // 绘制视频帧
+
+        // 绘制水印
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, watermark_tex);
+        glUniform1i(glGetUniformLocation(shader_program, "watermarkTexture"), 1);
+        glUniform1i(glGetUniformLocation(shader_program, "isWatermark"), 1);
+        
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(6 * sizeof(unsigned int)));  // 绘制水印
+
+        // 从帧缓冲读取数据
+        glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb_frame->data[0]);
+
+        // 将RGB转换回YUV
+        sws_ctx = sws_getContext(
+            width, height, AV_PIX_FMT_RGB24,
+            width, height, (AVPixelFormat)input_frame->format,
+            SWS_BILINEAR, nullptr, nullptr, nullptr
+        );
+        if (!sws_ctx) {
+            std::cerr << "无法创建SwsContext" << std::endl;
+            av_frame_free(&rgb_frame);
+            return -1;
+        }
+
+        sws_scale(sws_ctx, rgb_frame->data, rgb_frame->linesize, 0, height,
+                 output_frame->data, output_frame->linesize);
+        sws_freeContext(sws_ctx);
+
+        // 复制时间戳等信息
+        output_frame->pts = input_frame->pts;
+        output_frame->pkt_dts = input_frame->pkt_dts;
+        output_frame->duration = input_frame->duration;
+
+        av_frame_free(&rgb_frame);
+        return 0;
+    }
+};
 // 初始化输入
 int init_input(ProcessingContext *ctx, const std::string &input_filename) {
     // 打开输入文件
@@ -218,6 +565,8 @@ int init_input(ProcessingContext *ctx, const std::string &input_filename) {
         }
     }
 
+    // OpenGL用于水印渲染的初始化在video_decode_thread_func中完成
+
     return 0;
 }
 
@@ -281,7 +630,7 @@ int init_output(ProcessingContext *ctx) {
     if (ctx->audio_stream_index != -1) {
         const AVCodec *audio_encoder = avcodec_find_encoder(AV_CODEC_ID_AAC);
         if (!audio_encoder) {
-            std::cerr << "找不到MP3编码器" << std::endl;
+            std::cerr << "找不到AAC编码器" << std::endl;
             return -1;
         }
 
@@ -429,28 +778,37 @@ void video_decode_thread_func(ProcessingContext *ctx) {
         return;
     }
 
+    // 初始化水印渲染器
+    std::lock_guard<std::mutex> lock(ctx->watermark_mutex);
+    if (!ctx->watermark_renderer && !ctx->watermark_path.empty()) {
+        ctx->watermark_renderer = std::make_unique<WatermarkRenderer>(
+            ctx->video_decoder_ctx->width, 
+            ctx->video_decoder_ctx->height,
+            ctx->watermark_path
+        );
+        if (!ctx->watermark_renderer->is_valid()) {
+            std::cerr << "水印渲染器初始化失败" << std::endl;
+            ctx->watermark_renderer.reset();
+        }
+    }
+
     while (!ctx->quit) {
         int ret = ctx->video_packet_queue.pop(pkt);
         if (ret <= 0) {
-            if (ret < 0) break; // 队列已中止
+            if (ret < 0) break;
             continue;
         }
 
-        // 如果是nullptr，说明队列结束
         if (!pkt) {
-            // 放入nullptr标记视频解码结束
             ctx->video_frame_queue.push(nullptr);
             break;
         }
 
-        // 只处理视频流
         if (pkt->stream_index == ctx->video_stream_index) {
-            // 发送Packet到解码器
             ret = avcodec_send_packet(ctx->video_decoder_ctx, pkt);
             if (ret < 0) {
                 std::cerr << "发送视频Packet到解码器失败" << std::endl;
             } else {
-                // 接收解码后的Frame
                 while (ret >= 0 && !ctx->quit) {
                     ret = avcodec_receive_frame(ctx->video_decoder_ctx, frame);
                     if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
@@ -460,13 +818,26 @@ void video_decode_thread_func(ProcessingContext *ctx) {
                         break;
                     }
 
-                    // 复制Frame并放入队列
                     AVFrame *queue_frame = av_frame_alloc();
                     if (!queue_frame || av_frame_ref(queue_frame, frame) < 0) {
                         std::cerr << "无法复制视频Frame" << std::endl;
                         av_frame_free(&queue_frame);
                     } else {
-                        // 这里可以添加对frame的修改操作
+                        // 添加水印
+                        if (ctx->watermark_renderer && ctx->watermark_renderer->is_valid()) {
+                            AVFrame* watermarked_frame = av_frame_alloc();
+                            if (watermarked_frame) {
+                                std::lock_guard<std::mutex> lock(ctx->watermark_mutex);
+                                int render_ret = ctx->watermark_renderer->add_watermark(queue_frame, watermarked_frame);
+                                if (render_ret == 0) {
+                                    av_frame_free(&queue_frame);
+                                    queue_frame = watermarked_frame;
+                                } else {
+                                    av_frame_free(&watermarked_frame);
+                                }
+                            }
+                        }
+
                         ctx->video_frame_queue.push(queue_frame);
                     }
                 }
@@ -526,7 +897,6 @@ void audio_decode_thread_func(ProcessingContext *ctx) {
                         std::cerr << "无法复制音频Frame" << std::endl;
                         av_frame_free(&queue_frame);
                     } else {
-                        // 这里可以添加对frame的修改操作
                         ctx->audio_frame_queue.push(queue_frame);
                     }
                 }
@@ -616,8 +986,6 @@ void video_encode_thread_func(ProcessingContext *ctx) {
         enc_frame->pts = frame_count++;  // 从0开始递增
         // 转换为编码器时间基（如25fps对应time_base={1,25}）
         enc_frame->pts = av_rescale_q(enc_frame->pts, {1, 25}, ctx->video_encoder_ctx->time_base);
-        
-        // 这里可以添加对编码前frame的修改操作
         
         // 发送Frame到编码器
         ret = avcodec_send_frame(ctx->video_encoder_ctx, enc_frame);
@@ -783,8 +1151,6 @@ void audio_encode_thread_func(ProcessingContext *ctx) {
         // 设置时间戳
         enc_frame->pts = frame_count++;
         
-        // 这里可以添加对编码前frame的修改操作
-        
         // 发送Frame到编码器
         ret = avcodec_send_frame(ctx->audio_encoder_ctx, enc_frame);
         if (ret < 0) {
@@ -850,7 +1216,7 @@ void mux_thread_func(ProcessingContext *ctx) {
                     video_done = 1;
                 } else {
                     // 处理视频Packet：时间基转换 + 写入
-                    AVStream *out_stream = ctx->output_format_ctx->streams[ctx->video_stream_index];
+                    AVStream *out_stream = ctx->output_format_ctx->streams[0];
                     av_packet_rescale_ts(video_pkt, 
                                         ctx->video_encoder_ctx->time_base, 
                                         out_stream->time_base);
@@ -874,7 +1240,7 @@ void mux_thread_func(ProcessingContext *ctx) {
                     audio_done = 1;
                 } else {
                     // 处理音频Packet：时间基转换 + 写入
-                    AVStream *out_stream = ctx->output_format_ctx->streams[ctx->audio_stream_index];
+                    AVStream *out_stream = ctx->output_format_ctx->streams[1];
                     av_packet_rescale_ts(audio_pkt, 
                                         ctx->audio_encoder_ctx->time_base, 
                                         out_stream->time_base);
@@ -931,6 +1297,9 @@ void cleanup(ProcessingContext *ctx) {
     ctx->video_encoded_packet_queue.clear();
     ctx->audio_encoded_packet_queue.clear();
     
+    // 清理OpenGL资源
+    glfwTerminate();
+
     // 关闭编码器
     avcodec_free_context(&ctx->video_encoder_ctx);
     avcodec_free_context(&ctx->audio_encoder_ctx);
@@ -956,16 +1325,16 @@ void cleanup(ProcessingContext *ctx) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 3) {
-        std::cerr << "用法: " << argv[0] << " <输入文件> <输出文件>" << std::endl;
+    if (argc != 4) {
+        std::cerr << "用法: " << argv[0] << " <输入文件> <输出文件> <水印图片>" << std::endl;
         return 1;
     }
 
-    // 初始化FFmpeg
     avformat_network_init();
 
     ProcessingContext ctx;
     ctx.output_filename = argv[2];
+    ctx.watermark_path = argv[3];  // 设置水印图片路径
 
     // 初始化输入
     if (init_input(&ctx, argv[1]) < 0) {
@@ -1006,4 +1375,3 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-

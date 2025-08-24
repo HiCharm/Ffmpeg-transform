@@ -228,11 +228,15 @@ CMakeFiles/transcode.dir/src/transcode.cpp.o: src/transcode.cpp \
   /usr/include/c++/11/backward/auto_ptr.h \
   /usr/include/c++/11/pstl/glue_memory_defs.h \
   /usr/include/c++/11/pstl/execution_defs.h \
-  include/libavformat/avformat.h \
-  include/libavcodec/codec_par.h \
-  include/libavutil/avutil.h \
-  include/libavutil/common.h \
-  /usr/include/inttypes.h \
+  include/glad/glad.h \
+  /usr/include/KHR/khrplatform.h \
+  include/GLFW/glfw3.h \
+  include/ft2build.h \
+  include/freetype/config/ftheader.h \
+  include/freetype/freetype.h \
+  include/freetype/config/ftconfig.h \
+  include/freetype/config/ftoption.h \
+  include/freetype/config/ftstdlib.h \
   /usr/lib/gcc/x86_64-linux-gnu/11/include/limits.h \
   /usr/lib/gcc/x86_64-linux-gnu/11/include/syslimits.h \
   /usr/include/limits.h \
@@ -242,6 +246,20 @@ CMakeFiles/transcode.dir/src/transcode.cpp.o: src/transcode.cpp \
   /usr/include/x86_64-linux-gnu/bits/posix2_lim.h \
   /usr/include/x86_64-linux-gnu/bits/xopen_lim.h \
   /usr/include/x86_64-linux-gnu/bits/uio_lim.h \
+  /usr/include/string.h \
+  /usr/include/strings.h \
+  /usr/include/c++/11/stdlib.h \
+  /usr/include/setjmp.h \
+  include/freetype/config/integer-types.h \
+  include/freetype/config/public-macros.h \
+  include/freetype/config/mac-support.h \
+  include/freetype/fttypes.h \
+  include/freetype/ftsystem.h \
+  include/freetype/ftimage.h \
+  include/freetype/fterrors.h \
+  include/freetype/ftmoderr.h \
+  include/freetype/fterrdef.h \
+  include/stb_image.h \
   /usr/include/c++/11/math.h \
   /usr/include/c++/11/cmath \
   /usr/include/math.h \
@@ -267,9 +285,16 @@ CMakeFiles/transcode.dir/src/transcode.cpp.o: src/transcode.cpp \
   /usr/include/c++/11/tr1/poly_hermite.tcc \
   /usr/include/c++/11/tr1/poly_laguerre.tcc \
   /usr/include/c++/11/tr1/riemann_zeta.tcc \
-  /usr/include/c++/11/stdlib.h \
-  /usr/include/string.h \
-  /usr/include/strings.h \
+  /usr/include/assert.h \
+  /usr/lib/gcc/x86_64-linux-gnu/11/include/emmintrin.h \
+  /usr/lib/gcc/x86_64-linux-gnu/11/include/xmmintrin.h \
+  /usr/lib/gcc/x86_64-linux-gnu/11/include/mmintrin.h \
+  /usr/lib/gcc/x86_64-linux-gnu/11/include/mm_malloc.h \
+  include/libavformat/avformat.h \
+  include/libavcodec/codec_par.h \
+  include/libavutil/avutil.h \
+  include/libavutil/common.h \
+  /usr/include/inttypes.h \
   include/libavutil/attributes.h \
   include/libavutil/error.h \
   include/libavutil/macros.h \
@@ -325,8 +350,16 @@ CMakeFiles/transcode.dir/src/transcode.cpp.o: src/transcode.cpp \
   include/libswresample/swresample.h \
   include/libswresample/version_major.h \
   include/libswresample/version.h \
-  include/libswresample/version_major.h
+  include/libswresample/version_major.h \
+  src/glad.c \
+  /usr/include/dlfcn.h \
+  /usr/include/x86_64-linux-gnu/bits/dlfcn.h \
+  /usr/include/x86_64-linux-gnu/bits/dl_find_object.h
 
+
+/usr/include/x86_64-linux-gnu/bits/dl_find_object.h:
+
+/usr/include/dlfcn.h:
 
 include/libswresample/version.h:
 
@@ -339,8 +372,6 @@ include/libswscale/version_major.h:
 include/libswscale/swscale.h:
 
 include/libavutil/timestamp.h:
-
-include/libavcodec/codec_desc.h:
 
 include/libavcodec/version.h:
 
@@ -356,8 +387,6 @@ include/libavformat/avio.h:
 
 include/libavutil/dict.h:
 
-include/libavutil/samplefmt.h:
-
 include/libavutil/channel_layout.h:
 
 include/libavutil/log.h:
@@ -372,9 +401,17 @@ include/libavutil/macros.h:
 
 include/libavutil/error.h:
 
-/usr/include/c++/11/stdlib.h:
+/usr/include/inttypes.h:
 
-/usr/include/c++/11/tr1/riemann_zeta.tcc:
+include/libavcodec/codec_par.h:
+
+/usr/lib/gcc/x86_64-linux-gnu/11/include/mmintrin.h:
+
+/usr/lib/gcc/x86_64-linux-gnu/11/include/xmmintrin.h:
+
+/usr/lib/gcc/x86_64-linux-gnu/11/include/emmintrin.h:
+
+/usr/include/assert.h:
 
 /usr/include/c++/11/tr1/poly_hermite.tcc:
 
@@ -386,9 +423,47 @@ include/libavutil/error.h:
 
 /usr/include/c++/11/tr1/ell_integral.tcc:
 
+/usr/include/c++/11/tr1/bessel_function.tcc:
+
+include/libavutil/intfloat.h:
+
+/usr/include/c++/11/tr1/special_function_util.h:
+
+/usr/include/c++/11/bits/specfun.h:
+
+include/libavutil/common.h:
+
+/usr/include/x86_64-linux-gnu/bits/iscanonical.h:
+
+/usr/include/x86_64-linux-gnu/bits/mathcalls.h:
+
+/usr/include/x86_64-linux-gnu/bits/mathcalls-helper-functions.h:
+
+/usr/include/x86_64-linux-gnu/bits/fp-logb.h:
+
+/usr/include/x86_64-linux-gnu/bits/flt-eval-method.h:
+
+/usr/include/x86_64-linux-gnu/bits/math-vector.h:
+
+/usr/include/c++/11/math.h:
+
+include/stb_image.h:
+
+include/freetype/fterrdef.h:
+
 /usr/include/c++/11/bits/cxxabi_forced.h:
 
 /usr/include/x86_64-linux-gnu/bits/endian.h:
+
+include/libavutil/imgutils.h:
+
+include/libavformat/avformat.h:
+
+/usr/include/c++/11/backward/binders.h:
+
+/usr/include/x86_64-linux-gnu/bits/fp-fast.h:
+
+/usr/include/c++/11/iostream:
 
 /usr/include/c++/11/bits/deque.tcc:
 
@@ -399,6 +474,10 @@ include/libavutil/error.h:
 /usr/include/x86_64-linux-gnu/bits/types/__fpos64_t.h:
 
 /usr/include/x86_64-linux-gnu/bits/struct_rwlock.h:
+
+include/libavutil/avutil.h:
+
+/usr/include/strings.h:
 
 /usr/include/x86_64-linux-gnu/bits/thread-shared-types.h:
 
@@ -436,9 +515,9 @@ include/libavcodec/packet.h:
 
 /usr/include/c++/11/bits/ios_base.h:
 
-/usr/include/x86_64-linux-gnu/bits/fp-logb.h:
-
 /usr/include/x86_64-linux-gnu/bits/endianness.h:
+
+include/freetype/freetype.h:
 
 /usr/include/x86_64-linux-gnu/bits/locale.h:
 
@@ -451,6 +530,8 @@ include/libavcodec/codec_id.h:
 /usr/include/c++/11/bits/localefwd.h:
 
 /usr/include/x86_64-linux-gnu/sys/select.h:
+
+/usr/include/setjmp.h:
 
 include/libavcodec/defs.h:
 
@@ -470,10 +551,6 @@ include/libavcodec/defs.h:
 
 /usr/include/c++/11/bits/predefined_ops.h:
 
-/usr/include/strings.h:
-
-include/libavutil/avutil.h:
-
 /usr/include/c++/11/clocale:
 
 /usr/include/c++/11/bits/ostream.tcc:
@@ -488,11 +565,11 @@ include/libavutil/avutil.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/wint_t.h:
 
-include/libavcodec/codec_par.h:
-
 /usr/include/wchar.h:
 
 /usr/include/c++/11/bits/cxxabi_init_exception.h:
+
+include/freetype/config/public-macros.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/time_t.h:
 
@@ -512,21 +589,21 @@ include/libavcodec/codec_par.h:
 
 /usr/include/c++/11/bits/invoke.h:
 
+/usr/include/x86_64-linux-gnu/bits/mathcalls-narrow.h:
+
+/usr/include/c++/11/bits/postypes.h:
+
 /usr/include/c++/11/cstdint:
 
 /usr/include/x86_64-linux-gnu/bits/waitstatus.h:
-
-include/libavutil/intfloat.h:
-
-/usr/include/c++/11/tr1/special_function_util.h:
 
 /usr/include/linux/errno.h:
 
 /usr/include/c++/11/bits/stringfwd.h:
 
-/usr/include/x86_64-linux-gnu/bits/types/struct_timeval.h:
+include/freetype/fttypes.h:
 
-/usr/include/x86_64-linux-gnu/asm/errno.h:
+/usr/include/x86_64-linux-gnu/bits/types/struct_timeval.h:
 
 /usr/include/x86_64-linux-gnu/sys/cdefs.h:
 
@@ -542,6 +619,8 @@ include/libavutil/intfloat.h:
 
 /usr/include/c++/11/ostream:
 
+include/ft2build.h:
+
 /usr/include/c++/11/bits/unique_ptr.h:
 
 /usr/include/c++/11/tr1/legendre_function.tcc:
@@ -550,15 +629,13 @@ include/libavutil/intfloat.h:
 
 /usr/include/x86_64-linux-gnu/c++/11/bits/c++config.h:
 
-/usr/include/c++/11/tr1/gamma.tcc:
-
-/usr/include/x86_64-linux-gnu/gnu/stubs-64.h:
-
 /usr/include/x86_64-linux-gnu/bits/time64.h:
 
 /usr/include/c++/11/ctime:
 
 src/transcode.cpp:
+
+include/freetype/ftimage.h:
 
 /usr/include/c++/11/ext/type_traits.h:
 
@@ -618,6 +695,8 @@ include/libavutil/pixdesc.h:
 
 /usr/include/x86_64-linux-gnu/bits/long-double.h:
 
+include/freetype/fterrors.h:
+
 /usr/include/x86_64-linux-gnu/bits/types/mbstate_t.h:
 
 /usr/include/c++/11/cwchar:
@@ -630,9 +709,15 @@ include/libavutil/pixdesc.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/clock_t.h:
 
+/usr/include/math.h:
+
+/usr/include/x86_64-linux-gnu/bits/types/__FILE.h:
+
 include/libavutil/pixfmt.h:
 
 /usr/include/c++/11/bits/stl_tempbuf.h:
+
+include/glad/glad.h:
 
 /usr/include/c++/11/bits/stl_iterator_base_types.h:
 
@@ -659,6 +744,14 @@ include/libavutil/pixfmt.h:
 /usr/include/c++/11/bits/exception_ptr.h:
 
 /usr/include/c++/11/ext/string_conversions.h:
+
+/usr/include/x86_64-linux-gnu/bits/libm-simd-decl-stubs.h:
+
+/usr/lib/gcc/x86_64-linux-gnu/11/include/stddef.h:
+
+/usr/include/x86_64-linux-gnu/bits/types/struct_FILE.h:
+
+/usr/include/c++/11/string_view:
 
 /usr/include/x86_64-linux-gnu/c++/11/bits/atomic_word.h:
 
@@ -712,8 +805,6 @@ include/libavutil/mem.h:
 
 /usr/include/x86_64-linux-gnu/bits/waitflags.h:
 
-/usr/include/c++/11/math.h:
-
 /usr/include/c++/11/bits/ptr_traits.h:
 
 /usr/include/stdint.h:
@@ -731,6 +822,8 @@ include/libavutil/mem.h:
 /usr/include/c++/11/bits/shared_ptr.h:
 
 /usr/include/x86_64-linux-gnu/bits/uintn-identity.h:
+
+src/glad.c:
 
 /usr/include/x86_64-linux-gnu/bits/stdlib-float.h:
 
@@ -764,9 +857,13 @@ include/libavutil/mem.h:
 
 include/libavcodec/version_major.h:
 
+include/freetype/config/integer-types.h:
+
 /usr/include/x86_64-linux-gnu/bits/types/error_t.h:
 
-/usr/include/x86_64-linux-gnu/bits/mathcalls-helper-functions.h:
+/usr/include/x86_64-linux-gnu/asm/errno.h:
+
+include/freetype/config/ftconfig.h:
 
 /usr/include/c++/11/bits/charconv.h:
 
@@ -774,9 +871,7 @@ include/libavcodec/version_major.h:
 
 /usr/include/c++/11/bits/locale_classes.tcc:
 
-/usr/include/c++/11/iostream:
-
-/usr/include/x86_64-linux-gnu/bits/fp-fast.h:
+/usr/lib/gcc/x86_64-linux-gnu/11/include/mm_malloc.h:
 
 /usr/include/c++/11/system_error:
 
@@ -790,13 +885,9 @@ include/libavcodec/version_major.h:
 
 /usr/include/c++/11/stdexcept:
 
-/usr/include/string.h:
-
-/usr/include/c++/11/bits/streambuf.tcc:
+/usr/include/x86_64-linux-gnu/bits/dlfcn.h:
 
 /usr/include/c++/11/bits/atomic_lockfree_defines.h:
-
-/usr/include/c++/11/tr1/bessel_function.tcc:
 
 include/libavutil/frame.h:
 
@@ -824,6 +915,12 @@ include/libavformat/version.h:
 
 /usr/include/c++/11/bits/basic_ios.tcc:
 
+/usr/include/c++/11/tr1/gamma.tcc:
+
+/usr/include/x86_64-linux-gnu/gnu/stubs-64.h:
+
+include/freetype/config/mac-support.h:
+
 /usr/include/c++/11/istream:
 
 /usr/include/c++/11/bits/istream.tcc:
@@ -847,6 +944,10 @@ include/libavformat/version.h:
 /usr/include/c++/11/bits/stl_bvector.h:
 
 /usr/include/c++/11/bits/vector.tcc:
+
+include/libavcodec/codec_desc.h:
+
+include/freetype/config/ftheader.h:
 
 /usr/include/c++/11/bits/std_abs.h:
 
@@ -884,6 +985,8 @@ include/libavformat/version.h:
 
 /usr/include/c++/11/bits/unique_lock.h:
 
+include/freetype/config/ftoption.h:
+
 /usr/include/c++/11/bits/refwrap.h:
 
 /usr/include/c++/11/bits/cpp_type_traits.h:
@@ -896,13 +999,13 @@ include/libavformat/version.h:
 
 /usr/include/c++/11/bits/stl_raw_storage_iter.h:
 
-include/libavutil/imgutils.h:
+/usr/include/KHR/khrplatform.h:
 
-/usr/include/c++/11/backward/binders.h:
+include/GLFW/glfw3.h:
 
-include/libavformat/avformat.h:
+/usr/include/c++/11/tr1/riemann_zeta.tcc:
 
-/usr/include/inttypes.h:
+include/freetype/config/ftstdlib.h:
 
 /usr/lib/gcc/x86_64-linux-gnu/11/include/limits.h:
 
@@ -912,30 +1015,14 @@ include/libavformat/avformat.h:
 
 /usr/include/x86_64-linux-gnu/bits/uio_lim.h:
 
-/usr/include/x86_64-linux-gnu/bits/types/__FILE.h:
+/usr/include/c++/11/bits/streambuf.tcc:
 
-/usr/include/math.h:
+/usr/include/string.h:
 
-/usr/include/x86_64-linux-gnu/bits/math-vector.h:
+/usr/include/c++/11/stdlib.h:
 
-/usr/lib/gcc/x86_64-linux-gnu/11/include/stddef.h:
+include/libavutil/samplefmt.h:
 
-/usr/include/x86_64-linux-gnu/bits/types/struct_FILE.h:
+include/freetype/ftsystem.h:
 
-/usr/include/c++/11/string_view:
-
-/usr/include/x86_64-linux-gnu/bits/libm-simd-decl-stubs.h:
-
-/usr/include/x86_64-linux-gnu/bits/flt-eval-method.h:
-
-/usr/include/x86_64-linux-gnu/bits/mathcalls.h:
-
-/usr/include/c++/11/bits/postypes.h:
-
-/usr/include/x86_64-linux-gnu/bits/mathcalls-narrow.h:
-
-include/libavutil/common.h:
-
-/usr/include/x86_64-linux-gnu/bits/iscanonical.h:
-
-/usr/include/c++/11/bits/specfun.h:
+include/freetype/ftmoderr.h:

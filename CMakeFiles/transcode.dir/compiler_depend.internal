@@ -229,11 +229,15 @@ CMakeFiles/transcode.dir/src/transcode.cpp.o
  /usr/include/c++/11/backward/auto_ptr.h
  /usr/include/c++/11/pstl/glue_memory_defs.h
  /usr/include/c++/11/pstl/execution_defs.h
- /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/libavformat/avformat.h
- /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/libavcodec/codec_par.h
- /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/libavutil/avutil.h
- /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/libavutil/common.h
- /usr/include/inttypes.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/glad/glad.h
+ /usr/include/KHR/khrplatform.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/GLFW/glfw3.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/ft2build.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/freetype/config/ftheader.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/freetype/freetype.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/freetype/config/ftconfig.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/freetype/config/ftoption.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/freetype/config/ftstdlib.h
  /usr/lib/gcc/x86_64-linux-gnu/11/include/limits.h
  /usr/lib/gcc/x86_64-linux-gnu/11/include/syslimits.h
  /usr/include/limits.h
@@ -243,6 +247,20 @@ CMakeFiles/transcode.dir/src/transcode.cpp.o
  /usr/include/x86_64-linux-gnu/bits/posix2_lim.h
  /usr/include/x86_64-linux-gnu/bits/xopen_lim.h
  /usr/include/x86_64-linux-gnu/bits/uio_lim.h
+ /usr/include/string.h
+ /usr/include/strings.h
+ /usr/include/c++/11/stdlib.h
+ /usr/include/setjmp.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/freetype/config/integer-types.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/freetype/config/public-macros.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/freetype/config/mac-support.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/freetype/fttypes.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/freetype/ftsystem.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/freetype/ftimage.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/freetype/fterrors.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/freetype/ftmoderr.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/freetype/fterrdef.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/stb_image.h
  /usr/include/c++/11/math.h
  /usr/include/c++/11/cmath
  /usr/include/math.h
@@ -268,9 +286,16 @@ CMakeFiles/transcode.dir/src/transcode.cpp.o
  /usr/include/c++/11/tr1/poly_hermite.tcc
  /usr/include/c++/11/tr1/poly_laguerre.tcc
  /usr/include/c++/11/tr1/riemann_zeta.tcc
- /usr/include/c++/11/stdlib.h
- /usr/include/string.h
- /usr/include/strings.h
+ /usr/include/assert.h
+ /usr/lib/gcc/x86_64-linux-gnu/11/include/emmintrin.h
+ /usr/lib/gcc/x86_64-linux-gnu/11/include/xmmintrin.h
+ /usr/lib/gcc/x86_64-linux-gnu/11/include/mmintrin.h
+ /usr/lib/gcc/x86_64-linux-gnu/11/include/mm_malloc.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/libavformat/avformat.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/libavcodec/codec_par.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/libavutil/avutil.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/libavutil/common.h
+ /usr/include/inttypes.h
  /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/libavutil/attributes.h
  /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/libavutil/error.h
  /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/libavutil/macros.h
@@ -327,4 +352,8 @@ CMakeFiles/transcode.dir/src/transcode.cpp.o
  /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/libswresample/version_major.h
  /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/libswresample/version.h
  /home/ubuntu2204/workspace/2025/Ffmpeg-transform/include/libswresample/version_major.h
+ /home/ubuntu2204/workspace/2025/Ffmpeg-transform/src/glad.c
+ /usr/include/dlfcn.h
+ /usr/include/x86_64-linux-gnu/bits/dlfcn.h
+ /usr/include/x86_64-linux-gnu/bits/dl_find_object.h
 

@@ -6,10 +6,14 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 link_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 add_executable(transcode src/transcode.cpp)
 target_link_libraries(transcode
+    glm
+    GLEW
+    glfw
     avformat
     avcodec
     avutil
     swscale
     swresample
+    freetype
 )
 

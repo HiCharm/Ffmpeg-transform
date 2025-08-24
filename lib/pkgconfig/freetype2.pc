@@ -1,0 +1,14 @@
+prefix=/home/ubuntu2204/workspace/2025
+exec_prefix=/home/ubuntu2204/workspace/2025
+libdir=/home/ubuntu2204/workspace/2025/lib
+includedir=/home/ubuntu2204/workspace/2025/include
+
+Name: FreeType 2
+URL: https://freetype.org
+Description: A free, high-quality, and portable font engine.
+Version: 23.4.17
+Requires:
+Requires.private: zlib, libpng, harfbuzz >= 1.8.0, libbrotlidec
+Libs: -L${libdir} -lfreetype
+Libs.private: 
+Cflags: -I${includedir}/freetype2

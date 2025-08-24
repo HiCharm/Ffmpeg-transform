@@ -52,6 +52,9 @@
         "streambuf": "cpp",
         "thread": "cpp",
         "cinttypes": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "iomanip": "cpp",
+        "sstream": "cpp",
+        "dlfcn.h": "c"
     }
 }
