@@ -124,6 +124,8 @@ struct ProcessingContext {
     MediaQueue<AVFrame*> audio_frame_queue;      // 解码后的音频帧队列
     MediaQueue<AVPacket*> video_encoded_packet_queue;  // 编码后的视频packet队列
     MediaQueue<AVPacket*> audio_encoded_packet_queue;  // 编码后的音频packet队列
+    MediaQueue<AVFrame*> video_frames_for_render_queue;  // 待渲染的视频帧队列
+    MediaQueue<AVFrame*> watermarked_frames_queue;  // 已添加水印的视频帧队列
     
     // 转换器
     struct SwsContext *sws_ctx = nullptr;        // 视频格式转换
@@ -133,12 +135,13 @@ struct ProcessingContext {
     std::string watermark_path;
     std::unique_ptr<WatermarkRenderer> watermark_renderer;
     std::mutex watermark_mutex;  // 确保OpenGL操作线程安全
-    
+
     // 线程控制
     bool quit = false;
     std::thread demux_thread;
     std::thread video_decode_thread;
     std::thread audio_decode_thread;
+    std::thread render_thread;
     std::thread video_encode_thread;
     std::thread audio_encode_thread;
     std::thread mux_thread;
@@ -778,20 +781,6 @@ void video_decode_thread_func(ProcessingContext *ctx) {
         return;
     }
 
-    // 初始化水印渲染器
-    std::lock_guard<std::mutex> lock(ctx->watermark_mutex);
-    if (!ctx->watermark_renderer && !ctx->watermark_path.empty()) {
-        ctx->watermark_renderer = std::make_unique<WatermarkRenderer>(
-            ctx->video_decoder_ctx->width, 
-            ctx->video_decoder_ctx->height,
-            ctx->watermark_path
-        );
-        if (!ctx->watermark_renderer->is_valid()) {
-            std::cerr << "水印渲染器初始化失败" << std::endl;
-            ctx->watermark_renderer.reset();
-        }
-    }
-
     while (!ctx->quit) {
         int ret = ctx->video_packet_queue.pop(pkt);
         if (ret <= 0) {
@@ -823,29 +812,15 @@ void video_decode_thread_func(ProcessingContext *ctx) {
                         std::cerr << "无法复制视频Frame" << std::endl;
                         av_frame_free(&queue_frame);
                     } else {
-                        // 添加水印
-                        if (ctx->watermark_renderer && ctx->watermark_renderer->is_valid()) {
-                            AVFrame* watermarked_frame = av_frame_alloc();
-                            if (watermarked_frame) {
-                                std::lock_guard<std::mutex> lock(ctx->watermark_mutex);
-                                int render_ret = ctx->watermark_renderer->add_watermark(queue_frame, watermarked_frame);
-                                if (render_ret == 0) {
-                                    av_frame_free(&queue_frame);
-                                    queue_frame = watermarked_frame;
-                                } else {
-                                    av_frame_free(&watermarked_frame);
-                                }
-                            }
-                        }
-
-                        ctx->video_frame_queue.push(queue_frame);
+                        std::cout<<"解码出视频帧，PTS="<<queue_frame->pts<<std::endl;
+                        ctx->video_frames_for_render_queue.push(queue_frame);
                     }
                 }
             }
-        } 
+        }
         av_packet_free(&pkt);
     }
-
+    ctx->video_frames_for_render_queue.push(nullptr); // 标记视频解码结束
     av_frame_free(&frame);
 }
 
@@ -908,6 +883,47 @@ void audio_decode_thread_func(ProcessingContext *ctx) {
     av_frame_free(&frame);
 }
 
+void render_thread_func(ProcessingContext* ctx) {
+    // 1. 在此线程中初始化WatermarkRenderer和OpenGL
+    ctx->watermark_renderer = std::make_unique<WatermarkRenderer>(
+        ctx->video_decoder_ctx->width, 
+        ctx->video_decoder_ctx->height,
+        ctx->watermark_path
+    );
+    if (!ctx->watermark_renderer->is_valid()) {
+        std::cerr << "水印渲染器初始化失败" << std::endl;
+        ctx->watermark_renderer.reset();
+        return;
+    }
+
+    AVFrame* input_frame = nullptr;
+    while (!ctx->quit) {
+        // 2. 从解码线程的队列中取出帧
+        std::cout<<"等待渲染帧..."<<std::endl;
+        int ret = ctx->video_frames_for_render_queue.pop(input_frame);
+        if (ret <= 0) {
+            if (ret < 0) break;
+            continue;
+        }
+        if (!input_frame) {
+            // 结束标记
+            ctx->watermarked_frames_queue.push(nullptr);
+            break;
+        }
+
+        // 3. 执行OpenGL渲染
+        AVFrame* watermarked_frame = av_frame_alloc();
+        if (watermarked_frame && ctx->watermark_renderer->add_watermark(input_frame, watermarked_frame) == 0) {
+            // 4. 将加水印后的帧推入新队列
+            ctx->watermarked_frames_queue.push(watermarked_frame);
+        } else {
+            // 渲染失败，推入空帧或错误处理
+            av_frame_free(&watermarked_frame);
+        }
+        av_frame_free(&input_frame);
+    }
+}
+
 // 视频编码线程：从视频Frame队列取Frame，编码为Packet，放入编码后队列
 void video_encode_thread_func(ProcessingContext *ctx) {
     AVFrame *frame = nullptr;
@@ -932,7 +948,7 @@ void video_encode_thread_func(ProcessingContext *ctx) {
     int64_t frame_count = 0;
 
     while (!ctx->quit) {
-        ret = ctx->video_frame_queue.pop(frame);
+        ret = ctx->watermarked_frames_queue.pop(frame);
         if (ret <= 0) {
             if (ret < 0) break; // 队列已中止
             continue;
@@ -1026,6 +1042,7 @@ void video_encode_thread_func(ProcessingContext *ctx) {
         av_frame_free(&frame);
     }
 
+    ctx->video_encoded_packet_queue.push(nullptr); // 标记视频编码结束
     av_frame_free(&enc_frame);
     av_packet_free(&pkt);
 }
@@ -1354,6 +1371,7 @@ int main(int argc, char *argv[]) {
     if (ctx.audio_stream_index != -1) {
         ctx.audio_decode_thread = std::thread(audio_decode_thread_func, &ctx);
     }
+    ctx.render_thread = std::thread(render_thread_func, &ctx);
     ctx.video_encode_thread = std::thread(video_encode_thread_func, &ctx);
     if (ctx.audio_stream_index != -1) {
         ctx.audio_encode_thread = std::thread(audio_encode_thread_func, &ctx);
@@ -1364,6 +1382,7 @@ int main(int argc, char *argv[]) {
     if (ctx.demux_thread.joinable()) ctx.demux_thread.join();
     if (ctx.video_decode_thread.joinable()) ctx.video_decode_thread.join();
     if (ctx.audio_decode_thread.joinable()) ctx.audio_decode_thread.join();
+    if (ctx.render_thread.joinable()) ctx.render_thread.join();
     if (ctx.video_encode_thread.joinable()) ctx.video_encode_thread.join();
     if (ctx.audio_encode_thread.joinable()) ctx.audio_encode_thread.join();
     if (ctx.mux_thread.joinable()) ctx.mux_thread.join();
